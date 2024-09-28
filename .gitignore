@@ -1,0 +1,6 @@
+# 缓存
+bohdata/__pycache__/
+
+# pip
+bohdata.egg-info/
+build/

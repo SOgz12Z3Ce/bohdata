@@ -6,8 +6,17 @@ class UnexpectedEncoding(Exception):
 		super().__init__(message)
 
 def read(path):
+	"""
+	Read the game file and convert it to JSON.
+
+	Args:
+		path (str): The file path.
+
+	Returns:
+		dict: JSON data.
+	"""
 	encodings = ['utf-8', 'utf-8-sig', 'utf-16-le']  # Common encodings for A·K
-	# 尝试打开文件
+	# Attempt to open the file
 	content = ''
 	for encoding in encodings:
 		try:
@@ -16,15 +25,15 @@ def read(path):
 		except UnicodeDecodeError:
 			continue
 	
-	# 打开文件失败
+	# Failed to open the file
 	if content == '':
 		raise UnexpectedEncoding(f'"{path}" is not encoded in UTF-8, UTF-8 with BOM, or UTF-16LE.')
 
-	# 删除bom字符
+	# Remove BOM character
 	if content.startswith('\ufeff'):
 		content = content[1:]
 	
-	# 读取文件为json
+	# Load the file as JSON
 	try:
 		jsonData = json.loads(content)
 	except json.decoder.JSONDecodeError as error:

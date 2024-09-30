@@ -1,3 +1,4 @@
+import os
 import json
 
 from .boh_data import BohData
@@ -7,15 +8,15 @@ class UnexpectedEncoding(Exception):
     def __init__(self, message):
         super().__init__(message)
 
-def read(path):
+def read(path: str) -> BohData:
     """
-    Read the game file and convert it to JSON.
+    Read the game file and convert it to BohData.
 
     Args:
         path (str): The file path.
 
     Returns:
-        dict: JSON data.
+        BohData: The game data from the file.
     """
     encodings = ['utf-8', 'utf-8-sig', 'utf-16-le']  # Common encodings for A·K
     # Attempt to open the file
@@ -28,8 +29,8 @@ def read(path):
         except UnicodeDecodeError:
             continue
     
-    # Failed to open the file
     if content == '':
+    	# Failed to open the file
         raise UnexpectedEncoding(f'"{path}" is not encoded in UTF-8, UTF-8 with BOM, or UTF-16LE.')
 
     # Remove BOM character
@@ -47,3 +48,8 @@ def read(path):
         ) from error
 
     return data
+# TODO:
+# def read_dir(dir: str) -> BohData:
+#     for root, _, files in os.walk(dir):
+#         for file in files:
+#             print(os.path.join(root, file))

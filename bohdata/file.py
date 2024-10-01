@@ -8,22 +8,30 @@ class UnexpectedEncoding(Exception):
     def __init__(self, message):
         super().__init__(message)
 
-def read(path: str) -> BohData:
+def read(target: str) -> BohData:
     """
-    Read the game file and convert it to BohData.
+    Read the game file(s) and convert them to BohData.
 
     Args:
-        path (str): The file path.
+        target (str): The file(s) path or root directory path.
 
     Returns:
-        BohData: The game data from the file.
+        BohData: The game data from the file(s).
     """
+    if os.path.isdir(target):
+        res = BohData({})
+        for root, _, files in os.walk(target):
+            for file in files:
+                if file.endswith('.json'):
+                    res = res + read(os.path.join(root, file))
+        return res
+
     encodings = ['utf-8', 'utf-8-sig', 'utf-16-le']  # Common encodings for A·K
     # Attempt to open the file
     content = ''
     for encoding in encodings:
         try:
-            with open(path, 'r', encoding=encoding) as file:
+            with open(target, 'r', encoding=encoding) as file:
                 content = file.read()
                 break
         except UnicodeDecodeError:
@@ -31,7 +39,7 @@ def read(path: str) -> BohData:
     
     if content == '':
     	# Failed to open the file
-        raise UnexpectedEncoding(f'"{path}" is not encoded in UTF-8, UTF-8 with BOM, or UTF-16LE.')
+        raise UnexpectedEncoding(f'"{target}" is not encoded in UTF-8, UTF-8 with BOM, or UTF-16LE.')
 
     # Remove BOM character
     if content.startswith('\ufeff'):
@@ -42,14 +50,32 @@ def read(path: str) -> BohData:
         data = BohData(json.loads(content))
     except json.decoder.JSONDecodeError as error:
         raise json.decoder.JSONDecodeError(
-            f'Error parsing "{path}": {error.msg}\nTip: Check A·K\'s JSON file, which may contain errors.\nPos', 
+            f'Error parsing "{target}": {error.msg}\nTip: Check A·K\'s JSON file, which may contain errors.\nPos', 
             error.doc, 
             error.pos
         ) from error
 
     return data
-# TODO:
-# def read_dir(dir: str) -> BohData:
-#     for root, _, files in os.walk(dir):
-#         for file in files:
-#             print(os.path.join(root, file))
+
+def check(dir: str) -> list[str]:
+    """
+    Check the game file(s).
+
+    Args:
+        dir (str): The root directory path of game file(s).
+
+    Returns:
+        list[str]: invalid JSON file path(s).
+    """
+    if os.path.isdir(dir):
+        res = []
+        for root, _, files in os.walk(dir):
+            for file in files:
+                if not file.endswith('.json'):
+                    continue
+                path = os.path.join(root, file)
+                try:
+                    read(path)
+                except json.decoder.JSONDecodeError:
+                    res.append(path)
+        return res

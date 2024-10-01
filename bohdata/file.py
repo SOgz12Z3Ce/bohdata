@@ -8,22 +8,25 @@ class UnexpectedEncoding(Exception):
     def __init__(self, message):
         super().__init__(message)
 
-def read(target: str) -> BohData:
+def read(target: str, type: str) -> BohData:
     """
     Read the game file(s) and convert them to BohData.
 
     Args:
         target (str): The file(s) path or root directory path.
+        type (str): The type of file(s):
+            - 'meta': Usual file.
+            - 'zh': Localization file.
 
     Returns:
         BohData: The game data from the file(s).
     """
     if os.path.isdir(target):
-        res = BohData({})
+        res = BohData(type, {})
         for root, _, files in os.walk(target):
             for file in files:
                 if file.endswith('.json'):
-                    res = res + read(os.path.join(root, file))
+                    res = res + read(os.path.join(root, file), type)
         return res
 
     encodings = ['utf-8', 'utf-8-sig', 'utf-16-le']  # Common encodings for A·K
@@ -47,7 +50,7 @@ def read(target: str) -> BohData:
     
     # Load the file as JSON
     try:
-        data = BohData(json.loads(content))
+        data = BohData(type, json.loads(content))
     except json.decoder.JSONDecodeError as error:
         raise json.decoder.JSONDecodeError(
             f'Error parsing "{target}": {error.msg}\nTip: Check A·K\'s JSON file, which may contain errors.\nPos', 

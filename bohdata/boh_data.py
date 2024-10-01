@@ -18,17 +18,20 @@ class BohData(dict):
                 - Each dictionary contains:
                     - keys (str): The names of the attributes.
                     - values (Any): The attributes.
-        roots (list[str]): All contained object categories.
+        roots (set[str]): All categories of contained objects.
+
+    methods:
+        append(obj: BohObj, root: str) -> None: Append a object.
     """
     
-    def __init__(self, *args, **kwargs):
+    def __init__(self, type, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         # Transform original objects into BohObjs
         for root, objs in self.items():
             new_objs = []
             for obj in objs:
-                new_objs.append(BohObj(root, obj))
+                new_objs.append(BohObj(type, root, obj))
             self[root] = new_objs
 
         self.__map()
@@ -61,12 +64,12 @@ class BohData(dict):
                 
     def __root(self) -> None:
         """Get the root categories."""
-        self.roots = []
+        self.roots = set()
 
         for root, _ in self.items():
-            self.roots.append(root)
+            self.roots.add(root)
 
-    def append(self, obj, root) -> None:
+    def append(self, obj: BohObj, root: str) -> None:
         """
         Append a BohObj.
 
@@ -74,10 +77,11 @@ class BohData(dict):
             obj (BohObj): The BohObj to append.
             root (str): The root category of the BohObj.
         """
-        if root in self.keys() and obj not in self[root]:
-            self[root].append(obj)
-        else:
+        if root not in self.keys():
             self[root] = [obj]
-            self.roots.append(root)
+        elif obj not in self[root]:
+            self[root].append(obj)
+
+        self.roots.add(root)
 
         self.__map_append(obj)

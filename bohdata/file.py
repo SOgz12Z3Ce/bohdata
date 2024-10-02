@@ -17,6 +17,7 @@ def read(target: str, type: str) -> BohData:
         type (str): The type of file(s):
             - 'meta': Usual file.
             - 'zh': Localization file.
+            - 'unknown': Unknown type file.
 
     Returns:
         BohData: The game data from the file(s).
@@ -78,7 +79,7 @@ def check(dir: str) -> list[str]:
                     continue
                 path = os.path.join(root, file)
                 try:
-                    read(path)
+                    read(path, 'unknown')
                 except json.decoder.JSONDecodeError:
                     res.append(path)
         return res

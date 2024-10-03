@@ -1,6 +1,7 @@
 import os
 import json
 
+from .boh_obj import BohObj
 from .boh_data import BohData
 
 class UnexpectedEncoding(Exception):
@@ -23,7 +24,7 @@ def read(target: str, type: str) -> BohData:
         BohData: The game data from the file(s).
     """
     if os.path.isdir(target):
-        res = BohData(type, {})
+        res = BohData(type, None, {})
         for root, _, files in os.walk(target):
             for file in files:
                 if file.endswith('.json'):
@@ -42,7 +43,7 @@ def read(target: str, type: str) -> BohData:
             continue
     
     if content == '':
-    	# Failed to open the file
+        # Failed to open the file
         raise UnexpectedEncoding(f'"{target}" is not encoded in UTF-8, UTF-8 with BOM, or UTF-16LE.')
 
     # Remove BOM character
@@ -51,7 +52,7 @@ def read(target: str, type: str) -> BohData:
     
     # Load the file as JSON
     try:
-        data = BohData(type, json.loads(content))
+        data = BohData(type, os.path.basename(target), json.loads(content))
     except json.decoder.JSONDecodeError as error:
         raise json.decoder.JSONDecodeError(
             f'Error parsing "{target}": {error.msg}\nTip: Check A·K\'s JSON file, which may contain errors.\nPos', 
@@ -60,6 +61,80 @@ def read(target: str, type: str) -> BohData:
         ) from error
 
     return data
+
+def pack(dir: str) -> None:
+    """
+    Trans paratranz.cn JSON files into JSON files for BOH.
+
+    Args:
+        dir (str): The root directory path of para JSON files and game files. It should be like this:
+            dir
+            ├── core
+            └── raw
+    """
+    def islist(obj):
+        """Check if a dict is able to be transed into a list."""
+        for key, _ in obj.items():
+            if key.isdigit() == False:
+                return False
+        keys = sorted(obj.keys(), key=int)
+        return all(str(i) == keys[i] for i in range(len(keys)))
+    
+    def tolist(obj):
+        """Trans a dict and its sub-dict(s) into list(s)."""
+        for key, value in obj.items():
+            if isinstance(value, dict):
+                obj[key] = tolist(value)
+        if not islist(obj):
+            return obj
+        res = []
+        key = '0'
+        while obj.get(key) is not None:
+            res.append(obj[key])
+            key = str(int(key) + 1)
+        return res
+
+    def prase(output, key, translation):
+        """Prase para entry into a dict."""
+        if '||' not in key:
+            output[key] = translation
+        else:
+            current_key = key.split('||')[0]
+            if output.get(current_key) is None:
+                output[current_key] = {}
+            prase(output[current_key], key.split('||', 1)[1], translation)
+
+    alldata = read(os.path.join(dir, 'core/'), 'meta')
+    for root, _, files in os.walk(os.path.join(dir, 'raw/')):
+        for fname in files:
+            path = os.path.join(root, fname)
+            with open(path,'r', encoding='utf-8') as file:
+                entries = json.load(file)
+
+            output = {}
+            for entry in entries:
+                prase(output, entry['key'], entry['translation'])
+                id = entry['key'].split('||')[0]
+                output[id]['id'] = id
+                
+                if id.lower() != id:
+                    output[id.lower()] = output[id]
+                    del output[id]
+            tolist(output)
+
+            relpath = os.path.relpath(path, os.path.join(dir, 'raw/')).replace('.csv', '')
+            outputpath = os.path.join('./output/', relpath)
+
+            outputdata = BohData('zh', fname.replace('.csv', ''), {})
+            for id, obj in output.items():
+                if alldata.map.get(id) is None:
+                    print(f'Object "{id}" at "{path}" needs to be manually processed.')
+                    continue
+                outputdata.append(BohObj('zh', alldata.map[id].root, obj))
+
+            os.makedirs(os.path.dirname(outputpath), exist_ok=True)
+            with open(outputpath, 'w', encoding='utf-8') as file:
+                file.write(json.dumps(outputdata, ensure_ascii=False))
 
 def check(dir: str) -> list[str]:
     """

@@ -170,7 +170,7 @@ class BohObj(dict):
 
         fname = self.id
         if forwiki:
-            fname = self.origin_id.replace('_', ' ')
+            fname = fname.replace('_', ' ')
             if fname.startswith(' '):
                 fname = f'Underline{fname}'
             if self.type == BohObjType.TRANSLATION:

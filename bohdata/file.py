@@ -34,14 +34,14 @@ def check(target: str) -> list[str]:
     """检查游戏``.json``文件。
 
     Args:
-        dir (str): 文件或目录路径。
+        target (str): 文件或目录路径。
 
     Returns:
         list[str]: 包含错误的``.json``文件。
     """
-    if os.path.isdir(dir):
+    if os.path.isdir(target):
         res = []
-        for root, _, files in os.walk(dir):
+        for root, _, files in os.walk(target):
             for file in files:
                 res = res + check(os.path.join(root, file))
         

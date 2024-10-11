@@ -1,6 +1,6 @@
-from .file import read, check, pack
+#-*-coding:utf-8-*-
+from bohdata.file import read, pack
+from bohdata.bohobj import istext, getid, BohObj
+from bohdata.bohdata import BohData
 
-from .boh_data import BohData
-from .boh_obj import BohObj
-
-__all__ = ['read', 'check', 'pack', 'BohData', 'BohObj']
+__all__ = ['read', 'pack', 'istext', 'getid', 'BohObj', 'BohData']

@@ -8,6 +8,7 @@ import json
 
 from bohdata.bohobj import getid
 from bohdata.bohobj import BohObj
+from bohdata.bohobj import BohObjType
 from bohdata.bohdata import BohData
 
 class UnexpectedEncoding(Exception):
@@ -57,7 +58,7 @@ def check(target: str) -> list[str]:
         return [target]
 
 
-def read(target: str) -> BohData:
+def read(target: str, objtype: BohObjType=BohObjType.UNKNOWN) -> BohData:
     """读取游戏文件并转化为``BohData``对象。
 
     Args:
@@ -67,11 +68,11 @@ def read(target: str) -> BohData:
         BohData: 游戏数据。
     """
     if os.path.isdir(target):
-        res = BohData({})
+        res = BohData({}, objtype)
         for root, _, files in os.walk(target):
             for file in files:
                 if file.endswith('.json'):
-                    res = res + read(os.path.join(root, file))
+                    res = res + read(os.path.join(root, file), objtype)
         
         return res
     
@@ -96,7 +97,7 @@ def read(target: str) -> BohData:
 
     # 加载文件
     try:
-        data = BohData(json.loads(content))
+        data = BohData(json.loads(content), objtype)
         data.file = os.path.basename(target)
     except json.decoder.JSONDecodeError as error:
         raise json.decoder.JSONDecodeError(
@@ -194,25 +195,32 @@ def pack(dir: str) -> None:
                 translations[id.lower()] = translations[id]
                 del translations[id]
 
+            # 读取对应游戏原文件
+            relpath = os.path.relpath(path, os.path.join(dir, 'raw/')).replace('.csv', '')
+            source = os.path.join(dir, 'core/', relpath)
+            source_objs = list(read(source).items())[0][1]
+
             # 创建翻译文件的 BohData 对象
             outputdata = BohData({})
             outputdata.file = fname.replace('.csv', '')
+            for obj in source_objs:
+                id = getid(obj)
+                if translations.get(id) is None or alldata.map.get(id) is None:
+                    continue
+
+                adding_obj = BohObj(translations[id])
+                adding_obj.root = alldata.map[id].root
+                outputdata.append(adding_obj)
+
+            # 报错
             for id, obj in translations.items():
                 if alldata.map.get(id) is None:
-                    # 无法在游戏文件中找到翻译
                     if alldata.repeats.get(id) is not None:
                         print(f'于"{path}"的对象"{id}"存在 ID 重复的对象。')
                     else:
                         print(f'于"{path}"的对象"{id}"不存在。')
-                    
-                    continue
 
-                add_obj = BohObj(obj)
-                add_obj.root = alldata.map[add_obj.id].root
-                outputdata.append(add_obj)
-
-            # 计算输出文件的相对路径
-            relpath = os.path.relpath(path, os.path.join(dir, 'raw/')).replace('.csv', '')
+            # 计算输出文件路径
             outputpath = os.path.join('./output/', relpath)
             
             # 写入文件

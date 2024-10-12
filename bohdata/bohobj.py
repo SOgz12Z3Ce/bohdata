@@ -31,13 +31,16 @@ class InvalidRoot(Exception):
 class BohObjType(Enum):
     """游戏对象类型的枚举。"""
 
-    META = 1
+    UNKNOWN = 1
+    """未知类型。以此类型新建的``BohObj``会尝试自动获取类型。对于只存在文本属性的对象可能产生错误。"""
+
+    META = 2
     """原始游戏对象。"""
 
-    TRANSLATION = 2
+    TRANSLATION = 3
     """翻译文件对象。"""
 
-    TRANSLATED = 3
+    TRANSLATED = 4
     """已翻译的游戏对象。"""
 
 
@@ -106,7 +109,7 @@ class BohObj(dict):
             raise InvalidRoot(f"错误的根分类：{value}")
         self._root = value
 
-    def __init__(self, obj):
+    def __init__(self, obj: dict, objtype: BohObjType=BohObjType.UNKNOWN):
         super().__init__(obj)
 
         # ID
@@ -121,10 +124,33 @@ class BohObj(dict):
         self._setLabel()
 
         # Type
-        if istext(self):
-            self.type = BohObjType.TRANSLATION
+        if objtype != BohObjType.UNKNOWN:
+            # 手动指定
+            self.type = objtype
         else:
-            self.type = BohObjType.META
+            # 自动分类
+            TEXT_OBJ = ['address.oriflammes', 'block.numa', 'hint.workstation', 'houseoflight.menu.food', 'houseoflight.menu.furtherstories',
+                        'houseoflight.menu.institute', 'houseoflight.menu.intro', 'houseoflight.menu.manuscripts', 'houseoflight.menu.salons',
+                        'houseoflight.menu.writingcase', 'musiccollection.autumn', 'musiccollection.contemplative', 'musiccollection.numa',
+                        'musiccollection.spring', 'musiccollection.summer', 'musiccollection.winter', 'musictrack.aknowledgeinthelookofthings',
+                        'musictrack.amber', 'musictrack.apostcardfrombrancrug', 'musictrack.arosewitch', 'musictrack.beacondance',
+                        'musictrack.bellyoftheearth', 'musictrack.caputlupinium', 'musictrack.comeaway', 'musictrack.crookystreasures',
+                        'musictrack.fireinthelibrary', 'musictrack.hawthorn', 'musictrack.istandatthedoor', 'musictrack.newgrowth',
+                        'musictrack.onebarehour', 'musictrack.ouroboros', 'musictrack.peaceinthedeep', 'musictrack.rainbringsthedawn',
+                        'musictrack.risingwindsturningstars', 'musictrack.seaholly', 'musictrack.settleoldsoldier', 'musictrack.stolenreflections',
+                        'musictrack.sunrisecomesearly', 'musictrack.sunsetcomesearly', 'musictrack.sunssplendour', 'musictrack.thegoldenson',
+                        'musictrack.thelaughingthrush', 'musictrack.themagicbetweenthetrees', 'musictrack.thememorywhichdoesnotdie',
+                        'musictrack.theninthpart', 'musictrack.theroadtobrancrug', 'musictrack.thetwelfthstroke', 'musictrack.thevelvetsnamelessname',
+                        'musictrack.thewatersedge', 'musictrack.wildwoodingreen', 'next.numa', 'pspherespec.b1', 'pspherespec.b2', 'pspherespec.b3',
+                        'pspherespec.b4', 'pspherespec.b5', 'pspherespec.b6', 'pspherespec.b7', 'pspherespec.belongings', 'pspherespec.comfort',
+                        'pspherespec.l1', 'pspherespec.l10', 'pspherespec.l11', 'pspherespec.l12', 'pspherespec.l13', 'pspherespec.l2', 'pspherespec.l3',
+                        'pspherespec.l4', 'pspherespec.l5', 'pspherespec.l6', 'pspherespec.l7', 'pspherespec.l8', 'pspherespec.l9',
+                        'pspherespec.outsidepile', 'pspherespec.outsidepile.beach', 'pspherespec.things', 'pspherespec.wall art', 'status.rhonwen.open',
+                        'towards.numa']
+            if istext(self) and self.id not in TEXT_OBJ:
+                self.type = BohObjType.TRANSLATION
+            else:
+                self.type = BohObjType.META
 
         # Root
         self._root = None
@@ -158,7 +184,7 @@ class BohObj(dict):
         self._setLabel()
         self.type = BohObjType.TRANSLATED
 
-    def tojson(self, dir: str = './', forwiki: bool = False) -> None:
+    def tojson(self, dir: str='./', forwiki: bool=False) -> None:
         """在给定目录下创建对象的``.json``文件。
 
         Args:

@@ -9,6 +9,7 @@ import re
 import copy
 
 from bohdata.bohobj import BohObj
+from bohdata.bohobj import BohObjType
 
 class InvalidFileName(Exception):
     """无效文件名。在尝试设置 Windows 下无效的文件名时抛出。
@@ -62,7 +63,7 @@ class BohData(dict):
 
         self._file = value
 
-    def __init__(self, obj):
+    def __init__(self, obj: dict, objtype: BohObjType=BohObjType.UNKNOWN):
         """初始化函数，使用传入的一个游戏文件 json 对象初始化。亦可使用空字典``{}``。"""
         super().__init__(obj)
 
@@ -77,7 +78,7 @@ class BohData(dict):
         root, origin_objs = list(self.items())[0]   # 一个游戏文件只可能拥有一个根分类
         new_objs = []
         for origin_obj in origin_objs:
-            new_obj = BohObj(origin_obj)
+            new_obj = BohObj(origin_obj, objtype)
             new_obj.root = root
             new_objs.append(new_obj)
         self[root] = new_objs
@@ -113,7 +114,7 @@ class BohData(dict):
         self.roots.add(obj.root)
         self._map_append(obj)
 
-    def tocsv(self, dir: str = './') -> None:
+    def tocsv(self, dir: str='./') -> None:
         """输出用于``paratranz.cn``的``.csv``文件。
 
         Args:
